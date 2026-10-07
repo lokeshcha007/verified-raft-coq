@@ -1,0 +1,6 @@
+-Q theories VerifiedRaft
+theories/Prelude.v
+theories/Model.v
+theories/Safety.v
+theories/Examples.v
+theories/Audit.v

@@ -1,0 +1,25 @@
+name: Check formal proofs
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  proofs:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v6
+      - uses: ocaml/setup-ocaml@v3
+        with:
+          ocaml-compiler: '4.14.2'
+      - name: Install the pinned prover and standard library
+        run: |
+          opam repository add rocq-released https://rocq-prover.org/opam/released
+          opam install --yes rocq-prover rocq-core.9.1.0 rocq-stdlib.9.1.0
+      - name: Compile, audit assumptions, and check proof objects
+        run: opam exec -- python3 scripts/check.py
