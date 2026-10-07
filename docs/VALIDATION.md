@@ -24,6 +24,12 @@ Independently checking compiled proof objects...
 PASS: 5 modules compiled; 21 assumption audits closed; kernel check passed.
 ```
 
+The native CLI was also verified with `python scripts/check.py --rocq
+'<Rocq Platform directory>\bin\rocq.exe'`, exercising `rocq compile` and
+`rocq check`. All eight tool-discovery regression tests pass, including an
+installation exposing `rocq` without the older `coqc` alias. CI explicitly
+selects this native CLI path.
+
 The source-text scan found no unfinished proofs or axiom declarations in the
 compiled modules. The positive traces and unsafe-action rejection examples are
 theorems checked with the rest of the project. Generated proof objects are

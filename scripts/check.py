@@ -24,6 +24,39 @@ def executable(value, fallback):
     return path
 
 
+def toolchain(coqc=None, coqchk=None, rocq=None):
+    """Prefer the native Rocq CLI; keep explicit Coq compatibility overrides."""
+    if coqc and rocq:
+        raise RuntimeError("Choose either --rocq/ROCQ or --coqc/COQC, not both")
+    native = None
+    if coqc:
+        compiler = [executable(coqc, "coqc")]
+    else:
+        native_path = rocq or shutil.which("rocq")
+        if native_path:
+            native = executable(native_path, "rocq")
+            compiler = [native, "compile"]
+        else:
+            compiler = [executable(None, "coqc")]
+
+    if coqchk:
+        checker = [executable(coqchk, "coqchk")]
+    elif native:
+        checker = [native, "check"]
+    else:
+        # Legacy compiler installations may ship either checker name.
+        names = ("coqchk", "rocqchk")
+        siblings = [Path(compiler[0]).with_name(name + (".exe" if os.name == "nt" else ""))
+                    for name in names]
+        checker_path = next((str(path) for path in siblings if path.is_file()), None)
+        checker_path = checker_path or next((shutil.which(name) for name in names
+                                             if shutil.which(name)), None)
+        if not checker_path:
+            raise RuntimeError("Kernel checker not found: install Rocq or pass --coqchk")
+        checker = [executable(checker_path, "coqchk")]
+    return compiler, checker
+
+
 def run(command, env):
     result = subprocess.run(command, cwd=ROOT, env=env, text=True,
                             stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
@@ -57,13 +90,13 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--coqc", default=os.environ.get("COQC"))
     parser.add_argument("--coqchk", default=os.environ.get("COQCHK"))
+    parser.add_argument("--rocq", default=os.environ.get("ROCQ"))
     args = parser.parse_args()
-    compiler = executable(args.coqc, "coqc")
-    sibling = Path(compiler).with_name("coqchk.exe" if os.name == "nt" else "coqchk")
-    checker = executable(args.coqchk or (str(sibling) if sibling.is_file() else None), "coqchk")
+    compiler, checker = toolchain(args.coqc, args.coqchk, args.rocq)
     env = os.environ.copy()
     # The Windows Platform binaries need their bundled DLL directory on PATH.
-    env["PATH"] = str(Path(compiler).parent) + os.pathsep + env.get("PATH", "")
+    tool_dirs = list(dict.fromkeys(str(Path(command[0]).parent) for command in (compiler, checker)))
+    env["PATH"] = os.pathsep.join(tool_dirs) + os.pathsep + env.get("PATH", "")
 
     project = shlex.split((ROOT / "_CoqProject").read_text(encoding="utf-8"))
     flags = project[:3]
@@ -80,16 +113,16 @@ def main():
     if not expected:
         raise RuntimeError("Assumption audit is empty")
 
-    run([compiler, "--version"], env)
+    run([compiler[0], "--version"], env)
     for source in sources:
         print(f"Compiling {source}", flush=True)
-        output = run([compiler, *flags, source], env)
+        output = run([*compiler, *flags, source], env)
         if source == "theories/Audit.v":
             closed = output.count("Closed under the global context")
             if closed != expected or re.search(r"(?m)^Axioms:", output):
                 raise RuntimeError(f"Assumption audit failed: {closed}/{expected} closed")
     print("Independently checking compiled proof objects...", flush=True)
-    run([checker, "-silent", *flags, "VerifiedRaft.Audit", "VerifiedRaft.Examples"], env)
+    run([*checker, "-silent", *flags, "VerifiedRaft.Audit", "VerifiedRaft.Examples"], env)
     print(f"PASS: {len(sources)} modules compiled; {expected} assumption audits closed; kernel check passed.")
 
 

@@ -43,7 +43,7 @@ if ($remotes -contains 'origin') {
     Invoke-Git remote add origin $expectedRemote
 }
 
-Invoke-Git add -- .gitattributes .gitignore .github _CoqProject Makefile README.md docs scripts theories
+Invoke-Git add -- .gitattributes .gitignore .github _CoqProject Makefile README.md docs scripts theories tests
 Invoke-Git diff --cached --check
 & git @gitOptions diff --cached --quiet
 $stagedStatus = $LASTEXITCODE

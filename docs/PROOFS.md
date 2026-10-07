@@ -72,7 +72,8 @@ The delayed-message example checks the `max` commit rule with an old zero
 commit advertisement after a real commit.
 
 `Audit.v` prints assumptions for 21 principal results. `scripts/check.py` checks
-that each is reported closed under the global context. It then runs `coqchk`
+that each is reported closed under the global context. It then runs `rocq check`
+(or the legacy `coqchk` compatibility command)
 over the compiled modules and their dependencies. All proofs use ordinary
 constructive Gallina/Ltac and standard-library arithmetic; there are no
 project-defined axioms, classical reasoning, functional extensionality, or

@@ -17,9 +17,11 @@ jobs:
       - uses: ocaml/setup-ocaml@v3
         with:
           ocaml-compiler: '4.14.2'
+      - name: Test native and legacy tool discovery
+        run: python3 -m unittest discover -s tests -v
       - name: Install the pinned prover and standard library
         run: |
           opam repository add rocq-released https://rocq-prover.org/opam/released
           opam install --yes rocq-prover rocq-core.9.1.0 rocq-stdlib.9.1.0
       - name: Compile, audit assumptions, and check proof objects
-        run: opam exec -- python3 scripts/check.py
+        run: opam exec -- python3 scripts/check.py --rocq rocq

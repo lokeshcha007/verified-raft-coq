@@ -77,16 +77,22 @@ and run this command in PowerShell from the project folder:
 python scripts/check.py --coqc 'C:\path\to\Rocq-Platform\bin\coqc.exe'
 ```
 
-The script also accepts `COQC`, `COQCHK`, and `--coqchk`. It adds the compiler's
-directory to the subprocess PATH so Windows can find the Platform DLLs.
-With `coqc` and `coqchk` on PATH, run `python scripts/check.py` or `make check`.
+The script prefers the native `rocq compile` and `rocq check` commands when
+`rocq` is on PATH, and falls back to the `coqc`/`coqchk` compatibility commands.
+Use `--rocq 'C:\path\to\bin\rocq.exe'` or `ROCQ` to select a native installation.
+It also accepts `COQC`, `COQCHK`, and `--coqchk`; an explicit `--coqc` retains the
+legacy command path. It adds the tool directories to the subprocess PATH so
+Windows can find the Platform DLLs. Run `python scripts/check.py` or `make check`.
 
 The check compiles all five modules, rejects unfinished proofs and axiom
 declarations, requires all 21 audited results to be closed under the global
-context, then independently checks the compiled proof objects with `coqchk`.
+context, then independently checks the compiled proof objects with `rocq check`
+or the compatibility checker `coqchk`.
 This verifies the formalization's proof objects, not a deployed Raft service.
 The [GitHub Actions workflow](.github/workflows/proofs.yml) repeats the same check.
 Use `python scripts/clean.py` to remove generated proof artifacts.
+Run `python -m unittest discover -s tests -v` for the tool-discovery regression
+tests, including native-only installations such as the opam setup in CI.
 
 To publish this project to the requested repository from your normal PowerShell
 session, run the following after reviewing the files. The script reruns formal
